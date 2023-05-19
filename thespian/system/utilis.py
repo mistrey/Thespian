@@ -19,7 +19,7 @@ def str_to_timedelta(strval):
 
 
 def getenvdef(env_name, converter, defval):
-    """Returns the integer representation of the specified environment
+    """Returns the converted representation of the specified environment
        variable or the default value if the environment variable is
        not set or is not convertible to an integer value.
     """
@@ -197,7 +197,7 @@ def actualActorClass(actorClass, sourceHashLoader=None):
             try:
                 import importlib
             except ImportError:
-                import thespian.importlib as importlib # KWQ?
+                import thespian.local_importlib as importlib
             if sourceHashLoader:
                 actorClass = sourceHashLoader(classModule, className)
             else:
