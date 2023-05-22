@@ -27,53 +27,51 @@ class HelloThread(Actor):
         self.thread_sending_msg = Thread(target=self._thread_function, daemon=True)
         self.sender = None
         self.world_actor = None
+        self.worldmsg = None
 
     def _thread_function(self):
+        sleep(0.5)
         if not self.world_actor:
             self.world_actor = self.createActor(World)
-        worldmsg = (self.sender, "Hello from thread,")
-        logging.info("Hello is trying to send %s to %s", worldmsg, self.world_actor)
-        self.send(self.world_actor, worldmsg)
+        self.send(self.myAddress, "start")
 
     @overrides
     def receiveMessage(self, msg, sender):
-        logging.info("Hello1 got: %s", msg)
+        logging.info("HelloThread got: %s", msg)
         self.sender = sender
         if msg == "are you there?":
+            self.worldmsg = (self.sender, "Hello from thread,")
             self.thread_sending_msg = Thread(target=self._thread_function, daemon=True)
             self.thread_sending_msg.start()
-
-
-class Hello(Actor):
-    """Actor sending the string \"Hello\" when receiving a msg.
-    This one is for comparison."""
-
-    @overrides
-    def __init__(self):
-        super().__init__()
-        self.sender = None
-        self.world_actor = None
-
-    @overrides
-    def receiveMessage(self, msg, sender):
-        logging.info("Hello got: %s", msg)
-        self.sender = sender
-        if msg == "are you there?":
-            if not self.world_actor:
-                self.world_actor = self.createActor(World)
-            worldmsg = (self.sender, "Hello,")
-            logging.info("Hello is trying to send %s to %s", worldmsg, self.world_actor)
-            self.send(self.world_actor, worldmsg)
+        elif msg == "start":
+            logging.info(
+                "HelloThread is trying to send %s to %s",
+                self.worldmsg,
+                self.world_actor,
+            )
+            self.send(self.world_actor, self.worldmsg)
 
 
 class World(Actor):
     """Actor sending the string \" world!\" when receiving a msg"""
 
+    def _thread_function(self):
+        sleep(0.5)
+        self.send(self.sender, self.pre_world + " world!")
+
+    @overrides
+    def __init__(self):
+        super().__init__()
+        self.thread_sending_msg = Thread(target=self._thread_function, daemon=True)
+        self.sender = None
+        self.pre_world = None
+
     @overrides
     def receiveMessage(self, msg, sender):
         if isinstance(msg, tuple):
-            orig_sender, pre_world = msg
-            self.send(orig_sender, pre_world + " world!")
+            self.sender, self.pre_world = msg
+            self.thread_sending_msg = Thread(target=self._thread_function, daemon=True)
+            self.thread_sending_msg.start()
 
 
 class Goodbye(Actor):
@@ -87,24 +85,19 @@ class Goodbye(Actor):
 def run_example(systembase=None):
     """Main function running the example"""
     asys = ActorSystem(systembase, logDefs=logcfg)
-    hello = asys.createActor(Hello)
     hello_thread = asys.createActor(HelloThread)
     goodbye = asys.createActor(Goodbye)
-    for i in range(0, 999):
-        before = datetime.now()
-        greeting = asys.ask(hello, "are you there?", timedelta(seconds=5))
-        print(greeting + "\n" + asys.ask(goodbye, None, timedelta(milliseconds=100)))
-        after = datetime.now()
-        time_hello = after - before
-        print(f"Round {i} of Hello took {time_hello.total_seconds()} s.")
-        before = datetime.now()
-        greeting = asys.ask(hello_thread, "are you there?", timedelta(seconds=5))
-        print(greeting + "\n" + asys.ask(goodbye, None, timedelta(milliseconds=100)))
-        after = datetime.now()
-        time_hello_1 = after - before
-        print(f"Round {i} of HelloThread took {time_hello_1.total_seconds()} s.")
-        sleep(i)
-    asys.shutdown()
+    try:
+        for i in range(1, 10001):
+            before = datetime.now()
+            greeting = asys.ask(hello_thread, "are you there?", timedelta(seconds=5))
+            print(greeting + "\n" + asys.ask(goodbye, None, timedelta(seconds=5)))
+            after = datetime.now()
+            time_hello_1 = after - before
+            print(f"Round {i} of HelloThread took {time_hello_1.total_seconds()} s.")
+            sleep(i)
+    finally:
+        asys.shutdown()
 
 
 if __name__ == "__main__":
