@@ -30,7 +30,7 @@ class HelloThread(Actor):
         self.worldmsg = None
 
     def _thread_function(self):
-        sleep(0.5)
+        sleep(0.0001)
         if not self.world_actor:
             self.world_actor = self.createActor(World)
         self.send(self.myAddress, "start")
@@ -56,7 +56,7 @@ class World(Actor):
     """Actor sending the string \" world!\" when receiving a msg"""
 
     def _thread_function(self):
-        sleep(0.5)
+        # sleep(0.5)
         self.send(self.sender, self.pre_world + " world!")
 
     @overrides
@@ -88,14 +88,14 @@ def run_example(systembase=None):
     hello_thread = asys.createActor(HelloThread)
     goodbye = asys.createActor(Goodbye)
     try:
-        for i in range(1, 10001):
+        for i in range(1, 11):
             before = datetime.now()
             greeting = asys.ask(hello_thread, "are you there?", timedelta(seconds=5))
             print(greeting + "\n" + asys.ask(goodbye, None, timedelta(seconds=5)))
             after = datetime.now()
             time_hello_1 = after - before
             print(f"Round {i} of HelloThread took {time_hello_1.total_seconds()} s.")
-            sleep(i)
+            # sleep(i)
     finally:
         asys.shutdown()
 
