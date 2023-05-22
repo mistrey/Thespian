@@ -2,6 +2,8 @@
 
 Run this from the top level as:
    $ python examples/hellogoodbye.py  [system-base-name]
+
+   where system-base-name in (multiprocTCPBase, multiprocUDPBase, multiprocQueuBase)
 """
 
 import logging
