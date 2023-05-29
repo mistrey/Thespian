@@ -30,10 +30,13 @@ class HelloThread(Actor):
         self.worldmsg = None
 
     def _thread_function(self):
-        sleep(0.0001)
+        sleep(2)
+        # pass
         if not self.world_actor:
+            logging.debug("Creating World Actor")
             self.world_actor = self.createActor(World)
         self.send(self.myAddress, "start")
+        logging.debug("Sending 'start'")
 
     @overrides
     def receiveMessage(self, msg, sender):
@@ -55,47 +58,30 @@ class HelloThread(Actor):
 class World(Actor):
     """Actor sending the string \" world!\" when receiving a msg"""
 
-    def _thread_function(self):
-        # sleep(0.5)
-        self.send(self.sender, self.pre_world + " world!")
-
     @overrides
     def __init__(self):
         super().__init__()
-        self.thread_sending_msg = Thread(target=self._thread_function, daemon=True)
-        self.sender = None
-        self.pre_world = None
 
     @overrides
     def receiveMessage(self, msg, sender):
+        logging.info("World got: %s", msg)
         if isinstance(msg, tuple):
-            self.sender, self.pre_world = msg
-            self.thread_sending_msg = Thread(target=self._thread_function, daemon=True)
-            self.thread_sending_msg.start()
-
-
-class Goodbye(Actor):
-    """Actor sending the string \"Goodbye\" when receiving a msg"""
-
-    @overrides
-    def receiveMessage(self, msg, sender):
-        self.send(sender, "Goodbye")
+            self.send(msg[0], msg[1] + " world!")
 
 
 def run_example(systembase=None):
     """Main function running the example"""
     asys = ActorSystem(systembase, logDefs=logcfg)
     hello_thread = asys.createActor(HelloThread)
-    goodbye = asys.createActor(Goodbye)
     try:
-        for i in range(1, 11):
+        for i in range(1, 1001):
             before = datetime.now()
-            greeting = asys.ask(hello_thread, "are you there?", timedelta(seconds=5))
-            print(greeting + "\n" + asys.ask(goodbye, None, timedelta(seconds=5)))
+            greeting = asys.ask(hello_thread, "are you there?", timedelta(minutes=5))
+            print(greeting)
             after = datetime.now()
             time_hello_1 = after - before
             print(f"Round {i} of HelloThread took {time_hello_1.total_seconds()} s.")
-            # sleep(i)
+            # sleep(1)
     finally:
         asys.shutdown()
 
